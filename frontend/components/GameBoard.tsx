@@ -1,27 +1,49 @@
-import React, { useState } from 'react';
-import { GameState, Card as CardType } from '../types';
+import React, { useState, useMemo } from 'react';
+import { GameState, Card as CardType, Suit } from '../types';
 import { CardComponent } from './CardComponent';
 import { PlayerAvatar } from './PlayerAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Clock, Settings, Copy, Check, LogOut, Volume2 } from 'lucide-react';
+import { AlertTriangle, Clock, Settings, Copy, Check, LogOut, Volume2, ArrowUpDown } from 'lucide-react';
 
 interface GameBoardProps {
   gameState: GameState;
+  currentUserId: string | null;
   onPlayCard: (card: CardType) => void;
+  onLeaveGame?: () => void;
 }
 
-export const GameBoard: React.FC<GameBoardProps> = ({ gameState, onPlayCard }) => {
-  const user = gameState.players.find(p => p.id === 'p1');
-  const opponents = gameState.players.filter(p => p.id !== 'p1');
-  const [userHand, setUserHand] = useState<CardType[]>(gameState.deck.slice(0, 13).sort((a,b) => a.suit.localeCompare(b.suit)));
+// Suit order for sorting: Spades, Hearts, Diamonds, Clubs
+const SUIT_ORDER: Record<string, number> = {
+  [Suit.Spades]: 0,
+  [Suit.Hearts]: 1,
+  [Suit.Diamonds]: 2,
+  [Suit.Clubs]: 3,
+};
+
+export const GameBoard: React.FC<GameBoardProps> = ({ gameState, currentUserId, onPlayCard, onLeaveGame }) => {
+  // Find the current user by their ID (they have a hand array)
+  const user = gameState.players.find(p => p.id === currentUserId);
+  const opponents = gameState.players.filter(p => p.id !== currentUserId);
+  const userHand = user?.hand || [];
+  const isMyTurn = currentUserId && gameState.currentTurnPlayerId === currentUserId;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sortCards, setSortCards] = useState(false);
 
-  // Sync hand removal (mock)
+  // Sort cards by suit then value
+  const sortedHand = useMemo(() => {
+    if (!sortCards) return userHand;
+    return [...userHand].sort((a, b) => {
+      const suitDiff = (SUIT_ORDER[a.suit] ?? 4) - (SUIT_ORDER[b.suit] ?? 4);
+      if (suitDiff !== 0) return suitDiff;
+      return a.value - b.value;
+    });
+  }, [userHand, sortCards]);
+
+  // Play card - server validates
   const handleCardClick = (card: CardType) => {
-    if (gameState.currentTurnPlayerId !== 'p1') return; // Prevent playing out of turn
+    if (!isMyTurn) return; // Prevent playing out of turn
     onPlayCard(card);
-    setUserHand(prev => prev.filter(c => c.id !== card.id));
   };
   
   const handleCopyCode = () => {
@@ -30,14 +52,20 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState, onPlayCard }) =
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLeave = () => {
+    if (onLeaveGame && confirm('Are you sure you want to leave this game?')) {
+      onLeaveGame();
+    }
+  };
+
   return (
-    <div className="relative w-full h-full min-h-[600px] flex flex-col items-center justify-between py-4 md:py-6 select-none bg-[#F2F3F5] genshin-grid overflow-hidden">
+    <div className="fixed inset-0 w-full h-full flex flex-col items-center justify-between pt-20 pb-4 select-none bg-[#F2F3F5] genshin-grid overflow-hidden">
       
       {/* Background Ambience */}
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-white/20 to-white/50"></div>
 
-      {/* FIXED SETTINGS ICON (Top Right) */}
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-3">
+      {/* FIXED SETTINGS ICON (Top Right) - positioned below navbar */}
+      <div className="absolute top-20 right-4 z-30 flex items-center gap-3">
          {/* Room Code Badge */}
          <div 
            className="hidden md:flex items-center gap-2 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow-sm border border-white cursor-pointer hover:bg-white transition-colors group"
@@ -75,7 +103,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState, onPlayCard }) =
                     <Copy size={16} /> Copy Code
                   </button>
                   <div className="h-px bg-slate-200 my-1"></div>
-                  <button className="flex items-center gap-3 px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <button onClick={handleLeave} className="flex items-center gap-3 px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                     <LogOut size={16} /> Leave Game
                   </button>
                 </motion.div>
@@ -102,15 +130,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState, onPlayCard }) =
         )}
       </AnimatePresence>
 
-      {/* Top Bar: Opponents */}
-      <div className="w-full max-w-7xl flex justify-center items-start relative h-32 md:h-40 px-4 z-20 mt-4 md:mt-0">
-        <div className="flex justify-center items-center gap-3 md:gap-8 lg:gap-12 flex-wrap">
+      {/* Top Bar: Opponents - with proper spacing from navbar */}
+      <div className="w-full max-w-7xl flex justify-center items-start relative h-28 md:h-32 px-4 z-20 mt-2">
+        <div className="flex justify-center items-center gap-4 md:gap-10 lg:gap-14 flex-wrap">
           {opponents.map((player) => (
             <PlayerAvatar 
               key={player.id} 
               player={player} 
               position="top" 
-              timeLeft={15} 
+              timeLeft={30} 
               currentTime={gameState.turnTimeLeft}
             />
           ))}
@@ -152,8 +180,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState, onPlayCard }) =
       <div className="w-full flex flex-col items-center justify-end z-30 pb-4 md:pb-6">
         
         {/* Status Bar */}
-        <div className="flex items-center gap-4 mb-2 md:mb-6">
-           {gameState.currentTurnPlayerId === 'p1' ? (
+        <div className="flex items-center gap-4 mb-2 md:mb-4">
+           {isMyTurn ? (
              <motion.div 
                initial={{ y: 20, opacity: 0 }}
                animate={{ y: 0, opacity: 1 }}
@@ -167,37 +195,49 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState, onPlayCard }) =
                OPPONENT THINKING...
              </div>
            )}
+           
+           {/* Sort Cards Button */}
+           <button
+             onClick={() => setSortCards(!sortCards)}
+             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+               sortCards 
+                 ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30' 
+                 : 'bg-white/80 text-slate-600 hover:bg-white border border-slate-200'
+             }`}
+             title="Sort cards by suit"
+           >
+             <ArrowUpDown size={16} />
+             <span className="hidden sm:inline">{sortCards ? 'Sorted' : 'Sort'}</span>
+           </button>
         </div>
 
         {/* Hand Cards - Improved Fanning for image based cards */}
-        <div className="relative h-40 md:h-48 w-full max-w-5xl flex justify-center items-end perspective-[1000px] px-4">
-          <AnimatePresence>
-          {userHand.map((card, index) => {
-            const total = userHand.length;
+        <div className="relative h-40 md:h-48 w-full max-w-5xl flex justify-center items-end px-4">
+          {sortedHand.map((card, index) => {
+            const total = sortedHand.length;
             const center = (total - 1) / 2;
-            const rotate = (index - center) * 3; // Reduced rotation for cleaner look
-            const translateY = Math.abs(index - center) * 4;
-            const xOffset = (index - center) * -30; // Closer spacing with negative margin logic via CSS
+            const rotate = sortCards ? 0 : (index - center) * 3;
+            const translateY = sortCards ? 0 : Math.abs(index - center) * 4;
 
             return (
-              <motion.div 
+              <div 
                 key={card.id}
-                layoutId={card.id}
-                initial={{ y: 100 }}
-                animate={{ y: translateY, rotate: rotate }}
-                exit={{ y: 100, opacity: 0 }}
-                className="hover:z-50 origin-bottom transition-all duration-200 -ml-12 first:ml-0 md:-ml-16 cursor-pointer"
-                style={{ marginBottom: translateY * -0.5 }} 
+                className={`hover:z-50 hover:-translate-y-4 origin-bottom transition-all duration-300 cursor-pointer ${
+                  sortCards ? '-ml-10 first:ml-0 md:-ml-14' : '-ml-12 first:ml-0 md:-ml-16'
+                }`}
+                style={{ 
+                  transform: `translateY(${translateY}px) rotate(${rotate}deg)`,
+                  marginBottom: translateY * -0.5 
+                }} 
               >
                 <CardComponent 
                   card={card} 
-                  isPlayable={gameState.currentTurnPlayerId === 'p1'}
+                  isPlayable={isMyTurn}
                   onClick={() => handleCardClick(card)}
                 />
-              </motion.div>
+              </div>
             );
           })}
-          </AnimatePresence>
         </div>
         
         {/* User Info Capsule - Centered on Mobile, Left on Desktop */}

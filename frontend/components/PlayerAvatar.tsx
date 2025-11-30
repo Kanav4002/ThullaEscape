@@ -9,7 +9,7 @@ interface PlayerAvatarProps {
   currentTime?: number; // Current remaining time
 }
 
-export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ player, position, compact = false, timeLeft = 15, currentTime = 0 }) => {
+export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ player, position, compact = false, timeLeft = 30, currentTime = 0 }) => {
   const isTurn = player.isTurn;
   
   // Calculate timer progress

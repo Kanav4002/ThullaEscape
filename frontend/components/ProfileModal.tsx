@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Player } from '../types';
 import { X, RefreshCw, Save, User, Shield } from 'lucide-react';
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  player: Player;
+  player: Player | undefined;
   onUpdate: (name: string, avatar: string) => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, player, onUpdate }) => {
-  const [name, setName] = useState(player.name);
-  const [tempAvatar, setTempAvatar] = useState(player.avatar);
+  const [name, setName] = useState(player?.name || '');
+  const [tempAvatar, setTempAvatar] = useState(player?.avatar || '');
 
-  if (!isOpen) return null;
+  // Update state when player changes
+  useEffect(() => {
+    if (player) {
+      setName(player.name);
+      setTempAvatar(player.avatar);
+    }
+  }, [player]);
+
+  if (!isOpen || !player) return null;
 
   const handleRandomizeAvatar = () => {
     const seed = Math.floor(Math.random() * 1000);
@@ -23,7 +31,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, pla
   const handleSave = () => {
     onUpdate(name, tempAvatar);
     onClose();
-  };
+  }; // actual API call is wired in App via onUpdate
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

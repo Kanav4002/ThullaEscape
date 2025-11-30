@@ -22,9 +22,10 @@ export interface Player {
   avatar: string; // URL
   cardCount: number;
   isBot: boolean;
-  status: 'active' | 'waiting' | 'passed' | 'bhabhi';
+  status: 'active' | 'waiting' | 'passed' | 'bhabhi' | 'finished' | 'left';
   isTurn: boolean;
   level: number;
+  hand?: Card[]; // Only present for the current viewer's player
 }
 
 export interface GameState {

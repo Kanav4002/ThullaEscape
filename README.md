@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+## Thulla Escape Workspace
 
-# Run and deploy your AI Studio app
+This repository is now organized as a two-project workspace to make it easier to evolve the React client and an eventual server/API layer independently.
 
-This contains everything you need to run your app locally.
+```
+/
+├── backend/   # Reserved for APIs, game state services, etc. (coming soon)
+└── frontend/  # Existing Vite + React experience
+```
 
-View your app in AI Studio: https://ai.studio/apps/drive/1juvg2YwG7On-flNMfhrqTBDaTKjXcYe0
+### Frontend
+- Stack: Vite + React + TypeScript.
+- Location: `frontend/`
+- Usage: follow the detailed instructions in `frontend/README.md`, e.g.:
+  1. `cd frontend`
+  2. `npm install`
+  3. `npm run dev` (or `npm run build`, `npm run preview`)
 
-## Run Locally
+### Backend
+- Location: `backend/`
+- Current status: placeholder so the folder is tracked in Git.
+- Suggested next steps: scaffold your preferred framework (Express, Fastify, tRPC, etc.) and expose real-time game state & analytics endpoints that the frontend can consume.
 
-**Prerequisites:**  Node.js
+### Environment variables
+- Frontend expects `GEMINI_API_KEY` via `frontend/.env.local` (see `frontend/README.md`).
+- Backend-specific configuration can live under `backend/.env` once implemented.
 
+### Contributing
+Keep the contract between frontend and backend explicit (e.g., via shared schema files or API docs) to ensure each side can evolve independently.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`

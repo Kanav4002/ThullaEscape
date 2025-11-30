@@ -12,9 +12,11 @@ interface CardProps {
 }
 
 const getCardCode = (card: CardType): string => {
-  const suitCode = card.suit === Suit.Spades ? 'S' : 
-                   card.suit === Suit.Hearts ? 'H' : 
-                   card.suit === Suit.Diamonds ? 'D' : 'C';
+  // Handle both enum values and raw strings from server
+  const suit = String(card.suit);
+  const suitCode = suit === '♠' ? 'S' : 
+                   suit === '♥' ? 'H' : 
+                   suit === '♦' ? 'D' : 'C';
   
   // DeckOfCardsAPI uses '0' for 10
   const valueCode = card.display === '10' ? '0' : card.display.charAt(0);
